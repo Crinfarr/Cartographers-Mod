@@ -1,20 +1,13 @@
 package io.crinfarr.cartographersmod;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.mojang.logging.LogUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +16,6 @@ import org.slf4j.Logger;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 
@@ -42,30 +34,22 @@ public class CartographersMod {
     private void postCommonSetup(final FMLClientSetupEvent _event) {
         LOGGER.info("Entering postCommonSetup");
         @NotNull Set<Map.Entry<ResourceKey<Item>, Item>> items = ForgeRegistries.ITEMS.getEntries();
-        /**
-         * DEBUG
-         * items.forEach(resourceKeyItemEntry -> {
-         *      LOGGER.debug("Found {}", resourceKeyItemEntry.getKey().location());
-         * });
-         */
         final Stack<String> itemStack = new Stack<>();
-        items.forEach(item -> {
-            itemStack.push(
-                    String.format(
-                            "%c%s",
-                            item
-                                    .getKey()
-                                    .location()
-                                    .toString()
-                                    .length(),
-                            item
-                                    .getKey()
-                                    .location()
-                    )
-            );
-        });
+        items.forEach(item -> itemStack.push(
+                String.format(
+                        "%c%s",
+                        item
+                                .getKey()
+                                .location()
+                                .toString()
+                                .length(),
+                        item
+                                .getKey()
+                                .location()
+                )
+        ));
         final String outString = String.join("", itemStack);
-        try (FileWriter fileWriter = new FileWriter("cartographyMap.dump");) {
+        try (FileWriter fileWriter = new FileWriter("cartographyMap.dump")) {
             fileWriter.write(outString);
             LOGGER.info("Dumped {} items", items.size());
         } catch (IOException e) {
