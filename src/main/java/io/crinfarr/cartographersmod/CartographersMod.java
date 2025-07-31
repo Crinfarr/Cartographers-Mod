@@ -1,50 +1,48 @@
 package io.crinfarr.cartographersmod;
 
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.client.model.data.ModelData;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.codehaus.plexus.util.dag.Vertex;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import java.nio.Buffer;
+import java.io.IOException;
 import java.util.*;
 
 @Mod(CartographersMod.MODID)
-public class CartographersMod {
+public class CartographersMod{
     public static final String MODID = "cartographersmod";
     public static final Logger LOGGER = LogUtils.getLogger();
 
+    private final CartographySocket comms = new CartographySocket();
     public CartographersMod() {
-//        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-//        modEventBus.register(this);
-        MinecraftForge.EVENT_BUS.register(this);
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modEventBus.register(this);
     }
     @SubscribeEvent
+    public void lifecycle(final net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent event) {
+        LOGGER.info("Lifecycle event: {}", event.description());
+        comms.bind("127.0.0.1", 31201); // C+1.20.1
+        try {
+            LOGGER.info("Bound port {} on localhost", comms.getPort());
+            comms.bindClient(Minecraft.getInstance());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    //@SubscribeEvent
     public void renderItems(final net.minecraftforge.client.event.ClientChatEvent event) {
         LOGGER.info("ChatEvent, text={}", event.getMessage());
         if (!event.getMessage().equals("!--CartographersTableClientDump--!"))
