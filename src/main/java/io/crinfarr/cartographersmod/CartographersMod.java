@@ -1,35 +1,27 @@
 package io.crinfarr.cartographersmod;
 
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.tags.TagKey;
-import net.minecraft.util.profiling.jfr.event.WorldLoadFinishedEvent;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.targets.FMLServerLaunchHandler;
 import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.tags.ITag;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Mod(CartographersMod.MODID)
 public class CartographersMod {
@@ -37,57 +29,39 @@ public class CartographersMod {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public CartographersMod() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-//        modEventBus.addListener(this::postCommonSetup);
-
+//        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+//        modEventBus.register(this);
         MinecraftForge.EVENT_BUS.register(this);
     }
-
     @SubscribeEvent
-    public void postCommonSetup(final net.minecraftforge.event.server.ServerStartedEvent _event) {
-        LOGGER.info("Entering postCommonSetup");
+    public void renderItems(final net.minecraftforge.client.event.ClientChatEvent event) {
+        LOGGER.info("ChatEvent, text={}", event.getMessage());
+        if (!event.getMessage().equals("!--CartographersTableClientDump--!"))
+            return;
         @NotNull Set<Map.Entry<ResourceKey<Item>, Item>> items = ForgeRegistries.ITEMS.getEntries();
-        final Stack<String> itemStack = new Stack<>();
+        LOGGER.info("Trying to dump items");
+        ItemRenderer r = Minecraft.getInstance().getItemRenderer();
         items.forEach(item -> {
-            final Set<ITag<Item>> tags = ForgeRegistries.ITEMS.tags().stream().filter(itag -> {
-                return itag.contains(item.getValue());
-            }).collect(Collectors.toSet());
-            itemStack.push(
-                    String.format(
-                            "%c%s%c%s",
-                            item
-                                    .getKey()
-                                    .location()
-                                    .toString()
-                                    .length(),
-                            item
-                                    .getKey()
-                                    .location(),
-                            tags.size(),
-                            tags.stream().map(itag -> {
-                                return String.format("%c%s",
-                                        itag
-                                                .getKey()
-                                                .location()
-                                                .toString()
-                                                .length(),
-                                        itag
-                                                .getKey()
-                                                .location()
-                                );
-                            }).collect(Collectors.joining())
-                    )
+//            final OutputStream oStream;
+//            try {
+//                oStream = cartographersComms.getOutputStream();
+//            } catch (IOException e) {
+//                throw new RuntimeException("Failed to get output stream on socket", e);
+//            }
+
+            BakedModel model = r.getModel(item.getValue().getDefaultInstance(), null, null, 1);
+            MultiBufferSource renderTarget = MultiBufferSource.immediate(new BufferBuilder(300*300));
+            r.render(
+                    item.getValue().getDefaultInstance(),
+                    ItemDisplayContext.GUI,
+                    true,
+                    new PoseStack(),
+                    renderTarget,
+                    300,
+                    300,
+                    model
             );
+            renderTarget.getBuffer(RenderType.solid());
         });
-        final String outString = String.join("", itemStack);
-        try (FileWriter fileWriter = new FileWriter("items.dump")) {
-            fileWriter.write(outString);
-            LOGGER.info("Dumped {} items", items.size());
-            FileWriter doneFile = new FileWriter(".done");
-            doneFile.write(0x00);
-            doneFile.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
